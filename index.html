@@ -330,7 +330,7 @@
             </div>
 
             <div class="status-info">
-                <span id="eatenDaysCount">စားခဲ့သည့်ရက်: 0 ရက်</span>
+                <span id="eatenDaysCount">မှတ်တမ်း: 0 ခု</span>
                 <span id="percentDisplay">0%</span>
             </div>
         </div>
@@ -338,8 +338,8 @@
         <!-- Alert Banner -->
         <div class="alert-banner" id="alertBanner">
             <div class="alert-title">⚠️ ၁၀,၀၀၀ ကျပ် ပမာဏ ပြည့်သွားပါပြီ!</div>
-            <div class="alert-sub" id="alertSub">စုစုပေါင်း ရှင်းရန်ကျန်ငွေကို ရှင်းလင်းပြီးပါက Reset လုပ်နိုင်ပါသည်။</div>
-            <button class="btn-primary btn-success" onclick="resetCycle()">💵 ငွေရှင်းပြီးပါပြီ (Reset စတင်မည်)</button>
+            <div class="alert-sub" id="alertSub">၁၀,၀၀၀ ကျပ် ပေးချေပြီးပါက ပိုငွေကို နောက်စာရင်းထဲ အလိုအလျောက် သယ်ပေးသွားပါမည်။</div>
+            <button class="btn-primary btn-success" onclick="payTenThousand()">💵 ၁၀,၀၀၀ ကျပ် ပေးချေမည်</button>
         </div>
     </div>
 
@@ -405,7 +405,8 @@
         entries.unshift({
             id: Date.now(),
             date: dateVal,
-            amount: amountVal
+            amount: amountVal,
+            note: 'စားပြီး'
         });
 
         saveAndRender();
@@ -422,9 +423,29 @@
         }
     }
 
-    function resetCycle() {
-        if (confirm("လက်ရှိ ၁၀,၀၀၀ ကျပ် စာရင်းကို ရှင်းပြီး နောက်တစ်ကြိမ်အတွက် 0 မှ ပြန်စမလား?")) {
-            entries = [];
+    function payTenThousand() {
+        const totalSum = entries.reduce((sum, item) => sum + item.amount, 0);
+        const carryOver = totalSum - TARGET;
+
+        let confirmMsg = `၁၀,၀၀၀ ကျပ် ပေးချေပြီးကြောင်း မှတ်တမ်းတင်မလား?`;
+        if (carryOver > 0) {
+            confirmMsg = `စုစုပေါင်း ${totalSum.toLocaleString()} ကျပ် ရှိသည့်အနက် ၁၀,၀၀၀ ကျပ် ရှင်းပြီး ပိုနေသော ${carryOver.toLocaleString()} ကျပ်ကို နောက် စာရင်းထဲ သယ်ဆောင်သွားပါမည်။`;
+        }
+
+        if (confirm(confirmMsg)) {
+            const todayStr = new Date().toISOString().slice(0, 10);
+            entries = []; // Clear current cycle
+            
+            if (carryOver > 0) {
+                // Carry forward the remaining balance to the next cycle
+                entries.push({
+                    id: Date.now(),
+                    date: todayStr,
+                    amount: carryOver,
+                    note: 'ယခင် cycle မှ မရှင်းရသေးသော ပိုငွေ'
+                });
+            }
+            
             saveAndRender();
         }
     }
@@ -450,14 +471,19 @@
         if (totalSum >= TARGET) {
             progressBar.style.backgroundColor = "var(--warning)";
             alertBanner.classList.add('active');
-            alertSub.innerText = `ကျသင့်ငွေ စုစုပေါင်း ${totalSum.toLocaleString()} ကျပ် ဖြစ်ပါသည်။ ရှင်းလင်းပြီးပါက Reset နှိပ်ပါ။`;
+            const carryOver = totalSum - TARGET;
+            if (carryOver > 0) {
+                alertSub.innerText = `စုစုပေါင်း ${totalSum.toLocaleString()} ကျပ် ရှိပါသည်။ ၁၀,၀၀၀ ကျပ် ပေးချေပါက ပိုနေသော ${carryOver.toLocaleString()} ကျပ်ကို နောက် cycle သို့ သယ်သွားပါမည်။`;
+            } else {
+                alertSub.innerText = `အတိအကျ ၁၀,၀၀၀ ကျပ် ပြည့်သွားပါပြီ။ ပေးချေပြီးပါက ငွေရှင်းမည်ကို နှိပ်ပါ။`;
+            }
         } else {
             progressBar.style.backgroundColor = "var(--primary)";
             alertBanner.classList.remove('active');
         }
 
         // Count unique entries
-        eatenDaysCount.innerText = `စားခဲ့သည့်ရက်: ${entries.length} ရက်`;
+        eatenDaysCount.innerText = `မှတ်တမ်း: ${entries.length} ခု`;
 
         // Render History Items
         if (entries.length === 0) {
@@ -469,7 +495,7 @@
             <div class="history-item">
                 <div>
                     <div class="item-date">${item.date}</div>
-                    <div class="item-sub">စားပြီး</div>
+                    <div class="item-sub">${item.note || 'စားပြီး'}</div>
                 </div>
                 <div class="item-right">
                     <span class="item-amount">+${item.amount.toLocaleString()} ကျပ်</span>
