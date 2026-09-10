@@ -237,7 +237,7 @@
             background: #059669;
         }
 
-        /* History List */
+        /* History List & Paid Archive */
         .history-list {
             display: flex;
             flex-direction: column;
@@ -254,6 +254,29 @@
             background: #f8fafc;
             border-radius: 12px;
             border: 1px solid var(--border);
+        }
+
+        .paid-card {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 14px;
+            padding: 14px;
+            margin-bottom: 10px;
+        }
+
+        .paid-header {
+            display: flex;
+            justify-content: space-between;
+            font-weight: 800;
+            color: #166534;
+            font-size: 0.95rem;
+            margin-bottom: 6px;
+        }
+
+        .paid-details {
+            font-size: 0.8rem;
+            color: #15803d;
+            line-height: 1.4;
         }
 
         .item-date {
@@ -338,7 +361,7 @@
         <!-- Alert Banner -->
         <div class="alert-banner" id="alertBanner">
             <div class="alert-title">⚠️ ၁၀,၀၀၀ ကျပ် ပမာဏ ပြည့်သွားပါပြီ!</div>
-            <div class="alert-sub" id="alertSub">၁၀,၀၀၀ ကျပ် ပေးချေပြီးပါက ပိုငွေကို နောက်စာရင်းထဲ အလိုအလျောက် သယ်ပေးသွားပါမည်။</div>
+            <div class="alert-sub" id="alertSub">၁၀,၀၀၀ ကျပ် ပေးချေပြီးပါက စာရင်းဟောင်းထဲ သိမ်းသွားပါမည်။</div>
             <button class="btn-primary btn-success" onclick="payTenThousand()">💵 ၁၀,၀၀၀ ကျပ် ပေးချေမည်</button>
         </div>
     </div>
@@ -368,11 +391,19 @@
         <button class="btn-primary" onclick="addEntry()">မှတ်မည်</button>
     </div>
 
-    <!-- History Card -->
+    <!-- Active Cycle History Card -->
     <div class="card">
         <div class="title" style="font-size: 1.05rem; justify-content: flex-start; margin-bottom: 12px;">📜 လက်ရှိ Cycle မှတ်တမ်းများ</div>
         <div class="history-list" id="historyList">
             <div class="empty-state">မှတ်တမ်းများ မရှိသေးပါ။</div>
+        </div>
+    </div>
+
+    <!-- Paid Cycles History Card (Archive) -->
+    <div class="card">
+        <div class="title" style="font-size: 1.05rem; justify-content: flex-start; margin-bottom: 12px;">✅ ပေးချေပြီးသား စာရင်းဟောင်းများ</div>
+        <div class="history-list" id="paidHistoryList">
+            <div class="empty-state">ပေးချေပြီးသား မှတ်တမ်းများ မရှိသေးပါ။</div>
         </div>
     </div>
 </div>
@@ -380,6 +411,7 @@
 <script>
     const TARGET = 10000;
     let entries = JSON.parse(localStorage.getItem('foodEntries') || '[]');
+    let paidCycles = JSON.parse(localStorage.getItem('paidCycles') || '[]');
 
     // Set default date to today
     document.getElementById('entryDate').valueAsDate = new Date();
@@ -390,6 +422,7 @@
 
     function saveAndRender() {
         localStorage.setItem('foodEntries', JSON.stringify(entries));
+        localStorage.setItem('paidCycles', JSON.stringify(paidCycles));
         render();
     }
 
@@ -423,6 +456,13 @@
         }
     }
 
+    function deletePaidCycle(id) {
+        if (confirm("ဒီ ပေးချေပြီးသား စာရင်းဟောင်းကို ဖျက်ပစ်မှာ သေချာပါသလား?")) {
+            paidCycles = paidCycles.filter(item => item.id !== id);
+            saveAndRender();
+        }
+    }
+
     function payTenThousand() {
         const totalSum = entries.reduce((sum, item) => sum + item.amount, 0);
         const carryOver = totalSum - TARGET;
@@ -434,12 +474,23 @@
 
         if (confirm(confirmMsg)) {
             const todayStr = new Date().toISOString().slice(0, 10);
+            
+            // Archive current cycle
+            paidCycles.unshift({
+                id: Date.now(),
+                paidDate: todayStr,
+                paidAmount: TARGET,
+                totalBeforePay: totalSum,
+                itemCount: entries.length,
+                carryOver: Math.max(0, carryOver)
+            });
+
             entries = []; // Clear current cycle
             
             if (carryOver > 0) {
                 // Carry forward the remaining balance to the next cycle
                 entries.push({
-                    id: Date.now(),
+                    id: Date.now() + 1,
                     date: todayStr,
                     amount: carryOver,
                     note: 'ယခင် cycle မှ မရှင်းရသေးသော ပိုငွေ'
@@ -452,6 +503,7 @@
 
     function render() {
         const historyList = document.getElementById('historyList');
+        const paidHistoryList = document.getElementById('paidHistoryList');
         const totalDisplay = document.getElementById('totalDisplay');
         const progressBar = document.getElementById('progressBar');
         const percentDisplay = document.getElementById('percentDisplay');
@@ -473,7 +525,7 @@
             alertBanner.classList.add('active');
             const carryOver = totalSum - TARGET;
             if (carryOver > 0) {
-                alertSub.innerText = `စုစုပေါင်း ${totalSum.toLocaleString()} ကျပ် ရှိပါသည်။ ၁၀,၀၀၀ ကျပ် ပေးချေပါက ပိုနေသော ${carryOver.toLocaleString()} ကျပ်ကို နောက် cycle သို့ သယ်သွားပါမည်။`;
+                alertSub.innerText = `စုစုပေါင်း ${totalSum.toLocaleString()} ကျပ် ရှိပါသည်။ ၁၀,၀၀၀ ကျပ် ပေးချေပြီးပါက စာရင်းဟောင်းထဲ သိမ်းသွားမည်ဖြစ်ပြီး ပိုနေသော ${carryOver.toLocaleString()} ကျပ်ကို နောက် cycle သို့ သယ်သွားပါမည်။`;
             } else {
                 alertSub.innerText = `အတိအကျ ၁၀,၀၀၀ ကျပ် ပြည့်သွားပါပြီ။ ပေးချေပြီးပါက ငွေရှင်းမည်ကို နှိပ်ပါ။`;
             }
@@ -485,24 +537,42 @@
         // Count unique entries
         eatenDaysCount.innerText = `မှတ်တမ်း: ${entries.length} ခု`;
 
-        // Render History Items
+        // Render Active History Items
         if (entries.length === 0) {
-            historyList.innerHTML = '<div class="empty-state">မှတ်တမ်းများ မရှိသေးပါ။</div>';
-            return;
+            historyList.innerHTML = '<div class="empty-state">လက်ရှိ Cycle တွင် မှတ်တမ်းများ မရှိသေးပါ။</div>';
+        } else {
+            historyList.innerHTML = entries.map(item => `
+                <div class="history-item">
+                    <div>
+                        <div class="item-date">${item.date}</div>
+                        <div class="item-sub">${item.note || 'စားပြီး'}</div>
+                    </div>
+                    <div class="item-right">
+                        <span class="item-amount">+${item.amount.toLocaleString()} ကျပ်</span>
+                        <button class="btn-delete" onclick="deleteEntry(${item.id})">ဖျက်မည်</button>
+                    </div>
+                </div>
+            `).join('');
         }
 
-        historyList.innerHTML = entries.map(item => `
-            <div class="history-item">
-                <div>
-                    <div class="item-date">${item.date}</div>
-                    <div class="item-sub">${item.note || 'စားပြီး'}</div>
+        // Render Paid History Archive
+        if (paidCycles.length === 0) {
+            paidHistoryList.innerHTML = '<div class="empty-state">ပေးချေပြီးသား မှတ်တမ်းများ မရှိသေးပါ။</div>';
+        } else {
+            paidHistoryList.innerHTML = paidCycles.map(item => `
+                <div class="paid-card">
+                    <div class="paid-header">
+                        <span>💵 ၁၀,၀၀၀ ကျပ် ရှင်းပြီး</span>
+                        <button class="btn-delete" onclick="deletePaidCycle(${item.id})">ဖျက်မည်</button>
+                    </div>
+                    <div class="paid-details">
+                        <b>ရှင်းခဲ့သည့်ရက်:</b> ${item.paidDate}<br>
+                        <b>စုစုပေါင်း ငွေပမာဏ:</b> ${item.totalBeforePay.toLocaleString()} ကျပ် (${item.itemCount} ကြိမ်)<br>
+                        ${item.carryOver > 0 ? `<b>နောက် Cycle သို့ သယ်သွားသည့် ပိုငွေ:</b> ${item.carryOver.toLocaleString()} ကျပ်` : '<b>ပိုငွေ:</b> 0 ကျပ်'}
+                    </div>
                 </div>
-                <div class="item-right">
-                    <span class="item-amount">+${item.amount.toLocaleString()} ကျပ်</span>
-                    <button class="btn-delete" onclick="deleteEntry(${item.id})">ဖျက်မည်</button>
-                </div>
-            </div>
-        `).join('');
+            `).join('');
+        }
     }
 
     // Initial Render
