@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="my">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#2563eb">
+<title>စားသောက်စရိတ် Tracker V3</title>
+<style>
+:root{--p:#2563eb;--pd:#1d4ed8;--bg:#f1f5f9;--card:#fff;--txt:#0f172a;--muted:#64748b;--border:#e2e8f0;--ok:#10b981;--warn:#f59e0b;--danger:#ef4444}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans Myanmar",sans-serif;padding:14px}
+.app{max-width:560px;margin:auto}.card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:18px;margin:12px 0;box-shadow:0 8px 20px #0000000a}
+.header{text-align:center}.title{font-size:1.28rem;font-weight:800}.sub,.muted{color:var(--muted);font-size:.84rem;line-height:1.45}
+.progress{background:#eff6ff;border:1px solid #bfdbfe;border-radius:16px;padding:15px;margin-top:14px}.progressTop{display:flex;justify-content:space-between;align-items:end}.current{font-size:2rem;font-weight:850;color:var(--p)}.target{font-size:.82rem;color:var(--muted);font-weight:700}
+.bar{height:14px;background:#cbd5e1;border-radius:99px;overflow:hidden;margin:10px 0}.fill{height:100%;width:0;background:var(--p);transition:.3s}.stats{display:flex;justify-content:space-between;font-size:.82rem;font-weight:700}
+label{display:block;font-size:.84rem;font-weight:750;margin:10px 0 5px}input{width:100%;padding:11px 12px;border:1.5px solid var(--border);border-radius:11px;background:#f8fafc;font-size:1rem;outline:0}input:focus{border-color:var(--p);background:white}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.quick{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:8px 0 12px}.quick button,.btn{border:0;border-radius:10px;padding:10px;cursor:pointer;font-weight:750}.quick button{background:#f1f5f9;border:1px solid var(--border)}button:active{transform:scale(.98)}
+.primary{width:100%;background:var(--p);color:#fff}.success{background:var(--ok);color:#fff}.warning{background:var(--warn);color:#78350f}.danger{background:var(--danger);color:#fff}.secondary{background:#e2e8f0;color:var(--txt)}
+.notice{display:none;padding:15px;border-radius:15px;background:#fff3cd;border:2px solid var(--warn);text-align:center;margin-top:12px}.notice.show{display:block}.notice.ok{background:#ecfdf5;border-color:#6ee7b7}
+.noticeTitle{font-weight:850;font-size:1.05rem}.actions{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.entry{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 13px;border:1px solid var(--border);background:#f8fafc;border-radius:12px;margin-top:8px}.entryMain{min-width:0}.entryDate{font-weight:800}.entryNote{font-size:.76rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.entryRight{display:flex;align-items:center;gap:9px}.amt{font-weight:850;color:var(--p);white-space:nowrap}.mini{padding:7px 9px;font-size:.78rem;border:0;border-radius:8px;background:#fee2e2;color:#b91c1c;font-weight:750;cursor:pointer}
+.sectionTitle{font-size:1.03rem;font-weight:800;margin-bottom:10px}.empty{text-align:center;padding:18px;color:var(--muted);font-size:.85rem}
+.archive{border:1px solid var(--border);border-radius:13px;padding:12px;margin-top:8px;background:#f8fafc}.archive.paid{background:#f0fdf4;border-color:#bbf7d0}.archive.debt{background:#fef2f2;border-color:#fecaca}.archiveHead{display:flex;justify-content:space-between;gap:8px;font-weight:800}.archiveInfo{font-size:.78rem;color:var(--muted);line-height:1.5;margin-top:5px}
+.row{display:flex;gap:8px;flex-wrap:wrap}.row>*{flex:1;min-width:130px}.toolbar{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.modal{position:fixed;inset:0;background:#0f172a99;backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:15px;z-index:20}.modal.show{display:flex}.modalBox{width:100%;max-width:420px;background:white;border-radius:20px;padding:20px;box-shadow:0 20px 50px #0003}.modalTitle{font-size:1.08rem;font-weight:850}.modalText{font-size:.86rem;color:var(--muted);line-height:1.5;margin:7px 0 14px}.modalActions{display:flex;gap:8px;margin-top:14px}.modalActions button{flex:1}
+.badge{display:inline-block;padding:4px 8px;border-radius:99px;font-size:.72rem;font-weight:800;background:#e2e8f0}.badge.ok{background:#d1fae5;color:#166534}.badge.debt{background:#fee2e2;color:#991b1b}
+@media(max-width:520px){.grid{grid-template-columns:1fr}.quick{grid-template-columns:repeat(2,1fr)}.progressTop{align-items:start}.current{font-size:1.7rem}.toolbar{grid-template-columns:1fr}.entry{align-items:flex-start}.entryRight{flex-direction:column;align-items:flex-end}}
+</style>
+</head>
+<body>
+<div class="app">
+
+<div class="card header">
+  <div class="title">🍱 စားသောက်စရိတ် Tracker V3</div>
+  <div class="sub">စားတဲ့နေ့ပဲ မှတ်ပါ။ Target ပြည့်တဲ့အချိန်ကို အလိုအလျောက်သိပေးပါမယ်။</div>
+
+  <div id="progress" class="progress">
+    <div class="progressTop">
+      <div id="current" class="current">0 ကျပ်</div>
+      <div id="targetLabel" class="target">Target: 10,000 ကျပ်</div>
+    </div>
+    <div class="bar"><div id="fill" class="fill"></div></div>
+    <div class="stats"><span id="count">စားပြီး 0 ရက်</span><span id="percent">0%</span></div>
+  </div>
+
+  <div id="notice" class="notice">
+    <div id="noticeTitle" class="noticeTitle">🎯 Target ပြည့်ပါပြီ!</div>
+    <div id="noticeText" class="sub"></div>
+    <div class="actions">
+      <button class="btn success" onclick="openPayment()">💵 ငွေရှင်းမယ်</button>
+      <button class="btn warning" onclick="openDebt()">📌 မရှင်းသေးပါ — အကြွေးထားမယ်</button>
+    </div>
+  </div>
+</div>
+
+<div id="setupCard" class="card">
+  <div class="sectionTitle">⚙️ Cycle အသစ်သတ်မှတ်ရန်</div>
+  <div class="grid">
+    <div><label>အစားအစာအမည်</label><input id="food" placeholder="ဥပမာ - နေ့လယ်စာ"></div>
+    <div><label>Target (ကျပ်)</label><input id="target" type="number" min="1" value="10000"></div>
+  </div>
+  <div class="row">
+    <button class="btn primary" onclick="startCycle()">🚀 Cycle စတင်မယ်</button>
+  </div>
+  <div class="muted" style="margin-top:8px">Cycle မစရသေးခင် ဒီနေရာမှာ Target ကို ပြင်နိုင်ပါတယ်။</div>
+</div>
+
+<div id="entryCard" class="card hidden">
+  <div class="sectionTitle">➕ စားခဲ့တဲ့နေ့ ထည့်ရန်</div>
+  <label>ရက်စွဲ</label><input id="entryDate" type="date">
+  <label>ငွေပမာဏ (ကျပ်)</label><input id="entryAmount" type="number" min="1" value="2000">
+  <div class="quick">
+    <button onclick="setAmount(1500)">1,500</button><button onclick="setAmount(2000)">2,000</button>
+    <button onclick="setAmount(2500)">2,500</button><button onclick="setAmount(3000)">3,000</button>
+  </div>
+  <label>မှတ်ချက် (မထည့်လည်းရ)</label><input id="entryNote" placeholder="ဥပမာ - အထူးဟင်း">
+  <button class="btn primary" style="width:100%;margin-top:10px" onclick="saveEntry()">🍱 စားပြီး မှတ်မယ်</button>
+  <div class="muted" style="margin-top:8px">မစားတဲ့နေ့ဆို ဒီနေရာမှာ ဘာမှမထည့်ပါနဲ့။ အဲဒီနေ့က စုစုပေါင်းထဲ မပါပါဘူး။</div>
+</div>
+
+<div id="activeCard" class="card hidden">
+  <div class="sectionTitle">📜 လက်ရှိ Cycle မှတ်တမ်း</div>
+  <div id="entries"></div>
+</div>
+
+<div class="card">
+  <div class="sectionTitle">📁 ပြီးစီးခဲ့သော Cycle များ</div>
+  <div id="archives"></div>
+</div>
+
+<div class="card">
+  <div class="sectionTitle">🛠️ Data & Settings</div>
+  <div class="toolbar">
+    <button class="btn secondary" onclick="exportData()">⬇️ Backup ထုတ်မယ်</button>
+    <button class="btn secondary" onclick="document.getElementById('importFile').click()">⬆️ Backup ပြန်ထည့်မယ်</button>
+  </div>
+  <input id="importFile" type="file" accept=".json,application/json" style="display:none" onchange="importData(event)">
+  <div class="row" style="margin-top:8px">
+    <button class="btn secondary" onclick="requestNotification()">🔔 Browser Notification ဖွင့်မယ်</button>
+    <button class="btn danger" onclick="resetAll()">🗑️ Data အားလုံးဖျက်မယ်</button>
+  </div>
+  <div class="muted" style="margin-top:8px">Backup ဖိုင်ကို သိမ်းထားရင် Browser ပြောင်းသုံးတဲ့အခါ data ပြန်ထည့်နိုင်ပါတယ်။</div>
+</div>
+
+</div>
+
+<div id="modal" class="modal">
+  <div class="modalBox">
+    <div id="modalTitle" class="modalTitle">အတည်ပြုရန်</div>
+    <div id="modalText" class="modalText"></div>
+    <div id="modalBody"></div>
+    <div class="modalActions">
+      <button class="btn secondary" onclick="closeModal()">မလုပ်တော့ပါ</button>
+      <button id="modalOk" class="btn primary" onclick="modalOK()">အတည်ပြုမယ်</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const KEY="MealExpenseTrackerV3";
+let db=JSON.parse(localStorage.getItem(KEY)||"null")||{active:null,archives:[]};
+let callback=null;
+
+function money(n){return Number(n||0).toLocaleString("en-US")}
+function today(){let d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10)}
+function fmt(s){return new Date(s+"T00:00:00").toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"})}
+function save(){localStorage.setItem(KEY,JSON.stringify(db))}
+function total(){return db.active?db.active.entries.reduce((a,x)=>a+Number(x.amount||0),0):0}
+function complete(){return db.active&&total()>=db.active.target}
+function setAmount(n){document.getElementById("entryAmount").value=n}
+
+function openModal(title,text,fn,okText="အတည်ပြုမယ်",danger=false,body=""){
+  $("modalTitle").textContent=title;$("modalText").textContent=text;$("modalBody").innerHTML=body;
+  $("modalOk").textContent=okText;$("modalOk").className="btn "+(danger?"danger":"primary");
+  callback=fn;$("modal").classList.add("show");
+}
+function closeModal(){callback=null;$("modal").classList.remove("show")}
+function modalOK(){let f=callback;closeModal();if(f)f()}
+function $(id){return document.getElementById(id)}
+
+function startCycle(){
+  let target=Number($("target").value);
+  if(target<=0){alert("Target ပမာဏ မှန်ကန်စွာထည့်ပါ။");return}
+  if(db.active){
+    openModal("Cycle အသစ်စမလား?","လက်ရှိ Cycle ကို မပြီးသေးဘဲ အသစ်စရင် လက်ရှိစာရင်းကို archive ထဲသိမ်းထားပါမယ်။",()=>{
+      archiveCurrent("ABANDONED");
+      createCycle(target);
+    },"အသစ်စမယ်");
+    return;
+  }
+  createCycle(target);
+}
+function createCycle(target){
+  db.active={id:Date.now(),food:$("food").value.trim()||"အစားအစာ",target,created:today(),entries:[]};
+  save();render();
+}
+function saveEntry(){
+  if(!db.active){alert("အရင်ဆုံး Cycle စတင်ပါ။");return}
+  let date=$("entryDate").value, amount=Number($("entryAmount").value), note=$("entryNote").value.trim();
+  if(!date||amount<=0){alert("ရက်စွဲနဲ့ ငွေပမာဏကို မှန်ကန်စွာထည့်ပါ။");return}
+  let old=db.active.entries.find(x=>x.date===date);
+  if(old){
+    openModal("ဒီရက်စွဲမှာ မှတ်တမ်းရှိပြီးသား","အဟောင်းကို အသစ်ထည့်ထားတဲ့ Amount နဲ့ အစားထိုးမလား?",()=>{
+      old.amount=amount;old.note=note;old.updated=Date.now();render();
+    },"အစားထိုးမယ်");
+    return;
+  }
+  db.active.entries.push({id:Date.now(),date,amount,note});
+  db.active.entries.sort((a,b)=>a.date.localeCompare(b.date));
+  $("entryDate").value=today();$("entryAmount").value=2000;$("entryNote").value="";
+  render();
+}
+function deleteEntry(id){
+  openModal("မှတ်တမ်းဖျက်ရန်","ဒီစားပြီးမှတ်တမ်းကို ဖျက်မှာသေချာပါသလား?",()=>{
+    db.active.entries=db.active.entries.filter(x=>x.id!==id);render();
+  },"ဖျက်မယ်",true);
+}
+function editEntry(id){
+  let x=db.active.entries.find(e=>e.id===id);if(!x)return;
+  $("entryDate").value=x.date;$("entryAmount").value=x.amount;$("entryNote").value=x.note||"";
+  window.scrollTo({top:0,behavior:"smooth"});
+  // saveEntry detects same date and asks whether to replace
+}
+function archiveCurrent(type){
+  if(!db.active)return;
+  let t=total();
+  db.archives.unshift({
+    id:Date.now(),type,food:db.active.food,target:db.active.target,total:t,
+    entries:db.active.entries.length,created:db.active.created,closed:today()
+  });
+  db.active=null;save();
+}
+function openPayment(){
+  if(!complete())return;
+  let t=total();
+  let body='<label>ပေးချေမည့်ပမာဏ (ကျပ်)</label><input id="payAmount" type="number" min="1" value="'+t+'">'+
+           '<div class="quick" style="margin-top:8px"><button onclick="document.getElementById(\\'payAmount\\').value=5000">5,000</button>'+
+           '<button onclick="document.getElementById(\\'payAmount\\').value=10000">10,000</button>'+
+           '<button onclick="document.getElementById(\\'payAmount\\').value='+t+'">အပြည့်</button></div>';
+  openModal("💵 ငွေပေးချေမည့်ပမာဏ", "ကျသင့်ငွေစုစုပေါင်း "+money(t)+" ကျပ် ရှိပါတယ်။", confirmPayment,"ငွေရှင်းမယ်",false,body);
+}
+function confirmPayment(){
+  let t=total(), pay=Number($("payAmount")?.value||0);
+  if(pay<=0){alert("ပေးချေမည့်ပမာဏထည့်ပါ။");return}
+  if(pay>t){alert("ကျသင့်ငွေထက် ပိုမပေးနိုင်ပါ။");return}
+  let remain=t-pay;
+  db.archives.unshift({id:Date.now(),type:remain===0?"PAID":"PARTIAL",food:db.active.food,target:db.active.target,total:t,paid:pay,remaining:remain,entries:db.active.entries.length,created:db.active.created,closed:today()});
+  db.active=null;save();render();
+}
+function openDebt(){
+  if(!complete())return;
+  let t=total();
+  openModal("📌 အကြွေးအဖြစ် သိမ်းမလား?","စုစုပေါင်း "+money(t)+" ကျပ်ကို အခုမရှင်းသေးဘဲ အကြွေးမှတ်တမ်းအဖြစ် သိမ်းပြီး Cycle အသစ်စပါမယ်။",()=>{
+    db.archives.unshift({id:Date.now(),type:"DEBT",food:db.active.food,target:db.active.target,total:t,paid:0,remaining:t,entries:db.active.entries.length,created:db.active.created,closed:today()});
+    db.active=null;save();render();
+  },"အကြွေးထားမယ်",true);
+}
+function deleteArchive(id){
+  openModal("စာရင်းဟောင်းဖျက်ရန်","ဒီ Archive မှတ်တမ်းကို အပြီးဖျက်မှာ သေချာပါသလား?",()=>{
+    db.archives=db.archives.filter(x=>x.id!==id);save();render();
+  },"ဖျက်မယ်",true);
+}
+function continueDebt(id){
+  let a=db.archives.find(x=>x.id===id);if(!a||!a.remaining)return;
+  openModal("အကြွေးရှင်းရန်","ကျန်ငွေ "+money(a.remaining)+" ကျပ် ရှိပါတယ်။ ပေးချေမည့်ပမာဏကို ထည့်ပါ။",()=>{
+    let p=Number($("debtPay")?.value||0);if(p<=0||p>a.remaining){alert("မှန်ကန်သောပမာဏထည့်ပါ။");return}
+    a.remaining-=p;a.paid=(a.paid||0)+p;
+    if(a.remaining===0)a.type="PAID";
+    save();render();
+  },"ပေးချေမယ်",false,'<label>ပေးချေမည့်ပမာဏ (ကျပ်)</label><input id="debtPay" type="number" min="1" value="'+a.remaining+'">');
+}
+function render(){
+  $("setupCard").classList.toggle("hidden",!!db.active);
+  $("entryCard").classList.toggle("hidden",!db.active);
+  $("activeCard").classList.toggle("hidden",!db.active);
+  if(db.active){
+    let t=total(),p=Math.min(100,Math.round(t/db.active.target*100));
+    $("current").textContent=money(t)+" ကျပ်";$("targetLabel").textContent="Target: "+money(db.active.target)+" ကျပ်";
+    $("fill").style.width=p+"%";$("percent").textContent=p+"%";$("count").textContent="စားပြီး "+db.active.entries.length+" ရက်";
+    $("notice").classList.toggle("show",complete());
+    $("notice").classList.toggle("ok",complete());
+    if(complete())$("noticeText").textContent="လက်ရှိစုစုပေါင်း "+money(t)+" ကျပ် ရှိပါတယ်။";
+    $("entries").innerHTML=db.active.entries.length?db.active.entries.map(x=>'<div class="entry"><div class="entryMain"><div class="entryDate">'+fmt(x.date)+'</div><div class="entryNote">'+(x.note||"စားပြီး")+'</div></div><div class="entryRight"><span class="amt">+'+money(x.amount)+' ကျပ်</span><button class="mini" onclick="editEntry('+x.id+')">ပြင်</button><button class="mini" onclick="deleteEntry('+x.id+')">ဖျက်</button></div></div>').join(""):'<div class="empty">စားပြီးမှတ်တမ်း မရှိသေးပါ။</div>';
+  }else{
+    $("current").textContent="0 ကျပ်";$("targetLabel").textContent="Target: —";$("fill").style.width="0%";$("percent").textContent="0%";$("count").textContent="စားပြီး 0 ရက်";$("notice").classList.remove("show");
+  }
+  renderArchives();save();
+}
+function renderArchives(){
+  let h=$("archives");
+  if(!db.archives.length){h.innerHTML='<div class="empty">Cycle ဟောင်း မရှိသေးပါ။</div>';return}
+  h.innerHTML=db.archives.map(a=>{
+    let cls=a.type==="PAID"?"paid":(a.type==="DEBT"||a.type==="PARTIAL"?"debt":"");
+    let status=a.type==="PAID"?'<span class="badge ok">ရှင်းပြီး</span>':a.type==="PARTIAL"?'<span class="badge debt">တစ်စိတ်တစ်ပိုင်း</span>':a.type==="DEBT"?'<span class="badge debt">အကြွေး</span>':'<span class="badge">ပိတ်ထား</span>';
+    let pay=a.paid?'<br>ပေးပြီး: '+money(a.paid)+' ကျပ်':'';
+    let rem=a.remaining?'<br><b>ကျန်ငွေ: '+money(a.remaining)+' ကျပ်</b>':'';
+    let btn=a.remaining?'<button class="btn warning" style="margin-top:8px;width:100%" onclick="continueDebt('+a.id+')">💵 အကြွေးရှင်းမယ်</button>':'';
+    return '<div class="archive '+cls+'"><div class="archiveHead"><span>🍱 '+a.food+'</span>'+status+'</div><div class="archiveInfo">'+fmt(a.created)+' → '+fmt(a.closed)+'<br>စားပြီး '+a.entries+' ရက် · စုစုပေါင်း '+money(a.total)+' ကျပ် / Target '+money(a.target)+' ကျပ်'+pay+rem+'</div>'+btn+'<button class="mini" style="margin-top:7px" onclick="deleteArchive('+a.id+')">ဖျက်မယ်</button></div>';
+  }).join("");
+}
+function exportData(){
+  let blob=new Blob([JSON.stringify(db,null,2)],{type:"application/json"});
+  let a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="meal-tracker-backup-"+today()+".json";a.click();URL.revokeObjectURL(a.href);
+}
+function importData(e){
+  let file=e.target.files[0];if(!file)return;
+  let r=new FileReader();r.onload=()=>{
+    try{let x=JSON.parse(r.result);if(!x||!Array.isArray(x.archives))throw 0;
+      openModal("Backup ပြန်ထည့်ရန်","လက်ရှိ data ကို Backup data နဲ့ အစားထိုးပါမယ်။ ဆက်လုပ်မလား?",()=>{db=x;save();render()},"ပြန်ထည့်မယ်",true);
+    }catch(err){alert("Backup ဖိုင်မမှန်ပါ။")}
+  };r.readAsText(file);e.target.value="";
+}
+function requestNotification(){
+  if(!("Notification" in window)){alert("ဒီ Browser က Notification ကို မထောက်ပံ့ပါ။");return}
+  Notification.requestPermission().then(p=>alert(p==="granted"?"🔔 Notification ဖွင့်ပြီးပါပြီ။":"Notification ခွင့်ပြုချက် မရပါ။"));
+}
+function notify(){
+  if("Notification" in window&&Notification.permission==="granted")new Notification("🎯 Food Tracker",{body:"Target "+money(db.active.target)+" ကျပ် ပြည့်ပါပြီ — ငွေရှင်းရန်။"});
+}
+function resetAll(){
+  openModal("⚠️ Data အားလုံးဖျက်ရန်","လက်ရှိ Cycle၊ Archive နဲ့ Backup မရှိတဲ့ browser data အားလုံးကို ဖျက်ပါမယ်။ ဒီလုပ်ဆောင်ချက်ကို ပြန်ယူလို့မရပါ။",()=>{localStorage.removeItem(KEY);location.reload()},"အားလုံးဖျက်မယ်",true);
+}
+$("entryDate").value=today();
+let lastComplete=false;
+function watchComplete(){let c=complete();if(c&&!lastComplete)notify();lastComplete=c}
+const oldRender=render;render=function(){oldRender();watchComplete()}
+render();
+</script>
+</body>
+</html>
