@@ -154,6 +154,12 @@
             line-height: 1.4;
         }
 
+        .alert-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
         /* Form Inputs */
         .form-group {
             display: flex;
@@ -216,8 +222,8 @@
             color: white;
             border: none;
             border-radius: 12px;
-            padding: 14px;
-            font-size: 1rem;
+            padding: 12px;
+            font-size: 0.95rem;
             font-weight: 700;
             cursor: pointer;
             transition: background 0.2s, transform 0.1s;
@@ -237,7 +243,18 @@
             background: #059669;
         }
 
-        /* History List & Paid Archive */
+        .btn-warning {
+            background: var(--warning);
+            color: #78350f;
+            box-shadow: 0 4px 6px -1px rgba(245, 158, 11, 0.3);
+        }
+
+        .btn-warning:hover {
+            background: #d97706;
+            color: white;
+        }
+
+        /* History List & Archives */
         .history-list {
             display: flex;
             flex-direction: column;
@@ -256,28 +273,40 @@
             border: 1px solid var(--border);
         }
 
-        .paid-card {
-            background: #f0fdf4;
-            border: 1px solid #bbf7d0;
+        .archive-card {
             border-radius: 14px;
             padding: 14px;
             margin-bottom: 10px;
         }
 
-        .paid-header {
+        .paid-card {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+        }
+
+        .debt-card {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+        }
+
+        .archive-header {
             display: flex;
             justify-content: space-between;
             font-weight: 800;
-            color: #166534;
             font-size: 0.95rem;
             margin-bottom: 6px;
         }
 
-        .paid-details {
+        .paid-card .archive-header { color: #166534; }
+        .debt-card .archive-header { color: #991b1b; }
+
+        .archive-details {
             font-size: 0.8rem;
-            color: #15803d;
             line-height: 1.4;
         }
+
+        .paid-card .archive-details { color: #15803d; }
+        .debt-card .archive-details { color: #b91c1c; }
 
         .item-date {
             font-weight: 700;
@@ -361,8 +390,11 @@
         <!-- Alert Banner -->
         <div class="alert-banner" id="alertBanner">
             <div class="alert-title">⚠️ ၁၀,၀၀၀ ကျပ် ပမာဏ ပြည့်သွားပါပြီ!</div>
-            <div class="alert-sub" id="alertSub">၁၀,၀၀၀ ကျပ် ပေးချေပြီးပါက စာရင်းဟောင်းထဲ သိမ်းသွားပါမည်။</div>
-            <button class="btn-primary btn-success" onclick="payTenThousand()">💵 ၁၀,၀၀၀ ကျပ် ပေးချေမည်</button>
+            <div class="alert-sub" id="alertSub">ငွေရှင်းမည် (သို့မဟုတ်) အကြွေးမှတ်ပြီး Cycle သစ်စမည်ကို ရွေးချယ်ပါ:</div>
+            <div class="alert-actions">
+                <button class="btn-primary btn-success" onclick="payTenThousand()">💵 ၁၀,၀၀၀ ကျပ် ပေးချေမည်</button>
+                <button class="btn-primary btn-warning" onclick="carryAsDebt()">📌 မပေးသေးပါ (အကြွေးမှတ်ပြီး Cycle သစ်စမည်)</button>
+            </div>
         </div>
     </div>
 
@@ -399,11 +431,11 @@
         </div>
     </div>
 
-    <!-- Paid Cycles History Card (Archive) -->
+    <!-- Cycle History Archive Card -->
     <div class="card">
-        <div class="title" style="font-size: 1.05rem; justify-content: flex-start; margin-bottom: 12px;">✅ ပေးချေပြီးသား စာရင်းဟောင်းများ</div>
-        <div class="history-list" id="paidHistoryList">
-            <div class="empty-state">ပေးချေပြီးသား မှတ်တမ်းများ မရှိသေးပါ။</div>
+        <div class="title" style="font-size: 1.05rem; justify-content: flex-start; margin-bottom: 12px;">📁 ပြီးစီးခဲ့သော စာရင်းဟောင်းများ</div>
+        <div class="history-list" id="archiveHistoryList">
+            <div class="empty-state">စာရင်းဟောင်း မှတ်တမ်းများ မရှိသေးပါ။</div>
         </div>
     </div>
 </div>
@@ -411,7 +443,7 @@
 <script>
     const TARGET = 10000;
     let entries = JSON.parse(localStorage.getItem('foodEntries') || '[]');
-    let paidCycles = JSON.parse(localStorage.getItem('paidCycles') || '[]');
+    let cycleArchives = JSON.parse(localStorage.getItem('cycleArchives') || '[]');
 
     // Set default date to today
     document.getElementById('entryDate').valueAsDate = new Date();
@@ -422,7 +454,7 @@
 
     function saveAndRender() {
         localStorage.setItem('foodEntries', JSON.stringify(entries));
-        localStorage.setItem('paidCycles', JSON.stringify(paidCycles));
+        localStorage.setItem('cycleArchives', JSON.stringify(cycleArchives));
         render();
     }
 
@@ -456,9 +488,9 @@
         }
     }
 
-    function deletePaidCycle(id) {
-        if (confirm("ဒီ ပေးချေပြီးသား စာရင်းဟောင်းကို ဖျက်ပစ်မှာ သေချာပါသလား?")) {
-            paidCycles = paidCycles.filter(item => item.id !== id);
+    function deleteArchive(id) {
+        if (confirm("ဒီ စာရင်းဟောင်းကို ဖျက်ပစ်မှာ သေချာပါသလား?")) {
+            cycleArchives = cycleArchives.filter(item => item.id !== id);
             saveAndRender();
         }
     }
@@ -469,26 +501,26 @@
 
         let confirmMsg = `၁၀,၀၀၀ ကျပ် ပေးချေပြီးကြောင်း မှတ်တမ်းတင်မလား?`;
         if (carryOver > 0) {
-            confirmMsg = `စုစုပေါင်း ${totalSum.toLocaleString()} ကျပ် ရှိသည့်အနက် ၁၀,၀၀၀ ကျပ် ရှင်းပြီး ပိုနေသော ${carryOver.toLocaleString()} ကျပ်ကို နောက် စာရင်းထဲ သယ်ဆောင်သွားပါမည်။`;
+            confirmMsg = `စုစုပေါင်း ${totalSum.toLocaleString()} ကျပ် ရှိသည့်အနက် ၁၀,၀၀၀ ကျပ် ရှင်းပြီး ပိုနေသော ${carryOver.toLocaleString()} ကျပ်ကို နောက် Cycle ထဲ သယ်ဆောင်သွားပါမည်။`;
         }
 
         if (confirm(confirmMsg)) {
             const todayStr = new Date().toISOString().slice(0, 10);
             
-            // Archive current cycle
-            paidCycles.unshift({
+            // Archive as PAID
+            cycleArchives.unshift({
                 id: Date.now(),
-                paidDate: todayStr,
+                date: todayStr,
+                type: 'PAID',
                 paidAmount: TARGET,
-                totalBeforePay: totalSum,
+                totalAmount: totalSum,
                 itemCount: entries.length,
                 carryOver: Math.max(0, carryOver)
             });
 
-            entries = []; // Clear current cycle
+            entries = []; // Clear current entries
             
             if (carryOver > 0) {
-                // Carry forward the remaining balance to the next cycle
                 entries.push({
                     id: Date.now() + 1,
                     date: todayStr,
@@ -501,9 +533,38 @@
         }
     }
 
+    function carryAsDebt() {
+        const totalSum = entries.reduce((sum, item) => sum + item.amount, 0);
+
+        if (confirm(`စုစုပေါင်း ${totalSum.toLocaleString()} ကျပ်ကို မရှင်းသေးဘဲ အကြွေးအဖြစ် သယ်ဆောင်ပြီး Cycle အသစ် စတင်မှာ သေချာပါသလား?`)) {
+            const todayStr = new Date().toISOString().slice(0, 10);
+            
+            // Archive as DEBT
+            cycleArchives.unshift({
+                id: Date.now(),
+                date: todayStr,
+                type: 'DEBT',
+                totalAmount: totalSum,
+                itemCount: entries.length
+            });
+
+            entries = []; // Reset active list
+
+            // Carry full accumulated balance to the new cycle as unpaid debt
+            entries.push({
+                id: Date.now() + 1,
+                date: todayStr,
+                amount: totalSum,
+                note: 'ယခင် Cycle မှ မရှင်းရသေးသော အကြွေးကျန်'
+            });
+
+            saveAndRender();
+        }
+    }
+
     function render() {
         const historyList = document.getElementById('historyList');
-        const paidHistoryList = document.getElementById('paidHistoryList');
+        const archiveHistoryList = document.getElementById('archiveHistoryList');
         const totalDisplay = document.getElementById('totalDisplay');
         const progressBar = document.getElementById('progressBar');
         const percentDisplay = document.getElementById('percentDisplay');
@@ -525,16 +586,16 @@
             alertBanner.classList.add('active');
             const carryOver = totalSum - TARGET;
             if (carryOver > 0) {
-                alertSub.innerText = `စုစုပေါင်း ${totalSum.toLocaleString()} ကျပ် ရှိပါသည်။ ၁၀,၀၀၀ ကျပ် ပေးချေပြီးပါက စာရင်းဟောင်းထဲ သိမ်းသွားမည်ဖြစ်ပြီး ပိုနေသော ${carryOver.toLocaleString()} ကျပ်ကို နောက် cycle သို့ သယ်သွားပါမည်။`;
+                alertSub.innerText = `စုစုပေါင်း ${totalSum.toLocaleString()} ကျပ် ရှိနေပါသည်။ ငွေရှင်းမည် သို့မဟုတ် အကြွေးအဖြစ် နောက် Cycle သို့ သယ်ဆောင်မည်ကို ရွေးပါ:`;
             } else {
-                alertSub.innerText = `အတိအကျ ၁၀,၀၀၀ ကျပ် ပြည့်သွားပါပြီ။ ပေးချေပြီးပါက ငွေရှင်းမည်ကို နှိပ်ပါ။`;
+                alertSub.innerText = `အတိအကျ ၁၀,၀၀၀ ကျပ် ပြည့်သွားပါပြီ။ ငွေရှင်းမည် သို့မဟုတ် အကြွေးမှတ်မည်ကို ရွေးပါ:`;
             }
         } else {
             progressBar.style.backgroundColor = "var(--primary)";
             alertBanner.classList.remove('active');
         }
 
-        // Count unique entries
+        // Count entries
         eatenDaysCount.innerText = `မှတ်တမ်း: ${entries.length} ခု`;
 
         // Render Active History Items
@@ -555,23 +616,41 @@
             `).join('');
         }
 
-        // Render Paid History Archive
-        if (paidCycles.length === 0) {
-            paidHistoryList.innerHTML = '<div class="empty-state">ပေးချေပြီးသား မှတ်တမ်းများ မရှိသေးပါ။</div>';
+        // Render Cycle Archives
+        if (cycleArchives.length === 0) {
+            archiveHistoryList.innerHTML = '<div class="empty-state">စာရင်းဟောင်း မှတ်တမ်းများ မရှိသေးပါ။</div>';
         } else {
-            paidHistoryList.innerHTML = paidCycles.map(item => `
-                <div class="paid-card">
-                    <div class="paid-header">
-                        <span>💵 ၁၀,၀၀၀ ကျပ် ရှင်းပြီး</span>
-                        <button class="btn-delete" onclick="deletePaidCycle(${item.id})">ဖျက်မည်</button>
-                    </div>
-                    <div class="paid-details">
-                        <b>ရှင်းခဲ့သည့်ရက်:</b> ${item.paidDate}<br>
-                        <b>စုစုပေါင်း ငွေပမာဏ:</b> ${item.totalBeforePay.toLocaleString()} ကျပ် (${item.itemCount} ကြိမ်)<br>
-                        ${item.carryOver > 0 ? `<b>နောက် Cycle သို့ သယ်သွားသည့် ပိုငွေ:</b> ${item.carryOver.toLocaleString()} ကျပ်` : '<b>ပိုငွေ:</b> 0 ကျပ်'}
-                    </div>
-                </div>
-            `).join('');
+            archiveHistoryList.innerHTML = cycleArchives.map(item => {
+                if (item.type === 'PAID') {
+                    return `
+                        <div class="archive-card paid-card">
+                            <div class="archive-header">
+                                <span>💵 ၁၀,၀၀၀ ကျပ် ပေးချေခဲ့ပြီး</span>
+                                <button class="btn-delete" onclick="deleteArchive(${item.id})">ဖျက်မည်</button>
+                            </div>
+                            <div class="archive-details">
+                                <b>ရက်စွဲ:</b> ${item.date}<br>
+                                <b>စုစုပေါင်း ကျသင့်ငွေ:</b> ${item.totalAmount.toLocaleString()} ကျပ် (${item.itemCount} ကြိမ်)<br>
+                                ${item.carryOver > 0 ? `<b>ပိုငွေ နောက် Cycle သယ်သွားမှု:</b> ${item.carryOver.toLocaleString()} ကျပ်` : '<b>ပိုငွေ:</b> 0 ကျပ်'}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    return `
+                        <div class="archive-card debt-card">
+                            <div class="archive-header">
+                                <span>📌 အကြွေးအဖြစ် သယ်ဆောင်ခဲ့သည်</span>
+                                <button class="btn-delete" onclick="deleteArchive(${item.id})">ဖျက်မည်</button>
+                            </div>
+                            <div class="archive-details">
+                                <b>ရက်စွဲ:</b> ${item.date}<br>
+                                <b>မရှင်းရသေးသော အကြွေးပမာဏ:</b> ${item.totalAmount.toLocaleString()} ကျပ် (${item.itemCount} ကြိမ်)<br>
+                                <i>*ဒီပမာဏကို နောက် Cycle သစ်၏ အစသို့ ပေါင်းထည့်လိုက်ပါသည်။</i>
+                            </div>
+                        </div>
+                    `;
+                }
+            }).join('');
         }
     }
 
