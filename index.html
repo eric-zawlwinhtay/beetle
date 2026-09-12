@@ -390,9 +390,9 @@
         <!-- Alert Banner -->
         <div class="alert-banner" id="alertBanner">
             <div class="alert-title">⚠️ ၁၀,၀၀၀ ကျပ် ပမာဏ ပြည့်သွားပါပြီ!</div>
-            <div class="alert-sub" id="alertSub">ငွေရှင်းမည် (သို့မဟုတ်) အကြွေးမှတ်ပြီး Cycle သစ်စမည်ကို ရွေးချယ်ပါ:</div>
+            <div class="alert-sub" id="alertSub">ပေးချေလိုသော ပမာဏကို ရွေးချယ်/ထည့်သွင်း၍ စာရင်းရှင်းနိုင်ပါသည်။</div>
             <div class="alert-actions">
-                <button class="btn-primary btn-success" onclick="payTenThousand()">💵 ၁၀,၀၀၀ ကျပ် ပေးချေမည်</button>
+                <button class="btn-primary btn-success" onclick="customPay()">💵 ငွေပေးချေမည် (ပမာဏ ရွေးရန်)</button>
                 <button class="btn-primary btn-warning" onclick="carryAsDebt()">📌 မပေးသေးပါ (အကြွေးမှတ်ပြီး Cycle သစ်စမည်)</button>
             </div>
         </div>
@@ -495,42 +495,52 @@
         }
     }
 
-    function payTenThousand() {
+    function customPay() {
         const totalSum = entries.reduce((sum, item) => sum + item.amount, 0);
-        const carryOver = totalSum - TARGET;
+        
+        // Prompt user for payment amount, default to full total amount
+        const userInput = prompt(`စုစုပေါင်း ကျသင့်ငွေ ${totalSum.toLocaleString()} ကျပ် ရှိပါသည်။\nပေးချေမည့် ငွေပမာဏကို ထည့်ပါ:`, totalSum);
 
-        let confirmMsg = `၁၀,၀၀၀ ကျပ် ပေးချေပြီးကြောင်း မှတ်တမ်းတင်မလား?`;
-        if (carryOver > 0) {
-            confirmMsg = `စုစုပေါင်း ${totalSum.toLocaleString()} ကျပ် ရှိသည့်အနက် ၁၀,၀၀၀ ကျပ် ရှင်းပြီး ပိုနေသော ${carryOver.toLocaleString()} ကျပ်ကို နောက် Cycle ထဲ သယ်ဆောင်သွားပါမည်။`;
+        if (userInput === null) return; // Cancelled
+
+        const payAmount = parseInt(userInput);
+
+        if (isNaN(payAmount) || payAmount <= 0) {
+            alert("ကျေးဇူးပြု၍ မှန်ကန်သော ပေးချေငွေပမာဏ ထည့်ပါ။");
+            return;
         }
 
-        if (confirm(confirmMsg)) {
-            const todayStr = new Date().toISOString().slice(0, 10);
-            
-            // Archive as PAID
-            cycleArchives.unshift({
-                id: Date.now(),
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const balance = totalSum - payAmount; // Positive balance = Debt, Negative = Excess/Overpaid
+
+        // Archive current cycle
+        cycleArchives.unshift({
+            id: Date.now(),
+            date: todayStr,
+            type: 'PAID',
+            paidAmount: payAmount,
+            totalAmount: totalSum,
+            itemCount: entries.length,
+            remainingBalance: balance
+        });
+
+        entries = []; // Reset current cycle
+
+        // If balance remains or overpaid, carry forward to new cycle
+        if (balance > 0) {
+            // Less than total sum paid -> Carry debt
+            entries.push({
+                id: Date.now() + 1,
                 date: todayStr,
-                type: 'PAID',
-                paidAmount: TARGET,
-                totalAmount: totalSum,
-                itemCount: entries.length,
-                carryOver: Math.max(0, carryOver)
+                amount: balance,
+                note: 'ယခင် cycle မှ မရှင်းရသေးသော အကြွေးကျန်'
             });
-
-            entries = []; // Clear current entries
-            
-            if (carryOver > 0) {
-                entries.push({
-                    id: Date.now() + 1,
-                    date: todayStr,
-                    amount: carryOver,
-                    note: 'ယခင် cycle မှ မရှင်းရသေးသော ပိုငွေ'
-                });
-            }
-            
-            saveAndRender();
+        } else if (balance < 0) {
+            // Overpaid -> Carry excess balance as negative/credit
+            alert(`ပေးချေငွေ ပိုနေသော ${Math.abs(balance).toLocaleString()} ကျပ်ကို နောက် cycle အတွက် ပိုငွေအဖြစ် မသယ်ပါဘဲ 0 မှ စတင်ပါမည်။ (သို့မဟုတ် အကြွေးမရှိတော့ပါ)`);
         }
+
+        saveAndRender();
     }
 
     function carryAsDebt() {
@@ -584,12 +594,7 @@
         if (totalSum >= TARGET) {
             progressBar.style.backgroundColor = "var(--warning)";
             alertBanner.classList.add('active');
-            const carryOver = totalSum - TARGET;
-            if (carryOver > 0) {
-                alertSub.innerText = `စုစုပေါင်း ${totalSum.toLocaleString()} ကျပ် ရှိနေပါသည်။ ငွေရှင်းမည် သို့မဟုတ် အကြွေးအဖြစ် နောက် Cycle သို့ သယ်ဆောင်မည်ကို ရွေးပါ:`;
-            } else {
-                alertSub.innerText = `အတိအကျ ၁၀,၀၀၀ ကျပ် ပြည့်သွားပါပြီ။ ငွေရှင်းမည် သို့မဟုတ် အကြွေးမှတ်မည်ကို ရွေးပါ:`;
-            }
+            alertSub.innerText = `စုစုပေါင်း ${totalSum.toLocaleString()} ကျပ် ရှိနေပါသည်။ ငွေပေးချေမည် သို့မဟုတ် အကြွေးအဖြစ် နောက် Cycle သို့ သယ်ဆောင်မည်ကို ရွေးပါ:`;
         } else {
             progressBar.style.backgroundColor = "var(--primary)";
             alertBanner.classList.remove('active');
@@ -625,13 +630,15 @@
                     return `
                         <div class="archive-card paid-card">
                             <div class="archive-header">
-                                <span>💵 ၁၀,၀၀၀ ကျပ် ပေးချေခဲ့ပြီး</span>
+                                <span>💵 ${item.paidAmount.toLocaleString()} ကျပ် ပေးချေခဲ့ပြီး</span>
                                 <button class="btn-delete" onclick="deleteArchive(${item.id})">ဖျက်မည်</button>
                             </div>
                             <div class="archive-details">
                                 <b>ရက်စွဲ:</b> ${item.date}<br>
                                 <b>စုစုပေါင်း ကျသင့်ငွေ:</b> ${item.totalAmount.toLocaleString()} ကျပ် (${item.itemCount} ကြိမ်)<br>
-                                ${item.carryOver > 0 ? `<b>ပိုငွေ နောက် Cycle သယ်သွားမှု:</b> ${item.carryOver.toLocaleString()} ကျပ်` : '<b>ပိုငွေ:</b> 0 ကျပ်'}
+                                ${item.remainingBalance > 0 
+                                    ? `<b style="color: #b91c1c;">မရှင်းရသေးဘဲ ကျန်ခဲ့သော အကြွေး:</b> ${item.remainingBalance.toLocaleString()} ကျပ် (Cycle သစ်သို့ သယ်ယူခဲ့သည်)` 
+                                    : '<b>အခြေအနေ:</b> အပြည့်အဝ ငွေရှင်းပြီး'}
                             </div>
                         </div>
                     `;
