@@ -264,6 +264,16 @@
             color: white;
         }
 
+        .btn-danger-confirm {
+            background: var(--danger);
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-danger-confirm:hover {
+            background: #dc2626;
+        }
+
         /* History List & Archives */
         .history-list {
             display: flex;
@@ -404,8 +414,9 @@
         }
 
         .modal-sub {
-            font-size: 0.85rem;
+            font-size: 0.9rem;
             color: var(--text-light);
+            line-height: 1.4;
             margin-bottom: 16px;
         }
 
@@ -458,7 +469,7 @@
             <div class="alert-sub" id="alertSub">ပေးချေလိုသော ပမာဏကို ရွေးချယ်/ထည့်သွင်း၍ စာရင်းရှင်းနိုင်ပါသည်။</div>
             <div class="alert-actions">
                 <button class="btn-primary btn-success" onclick="openPayModal()">💵 ငွေပေးချေမည် (ပမာဏ ရွေးရန်)</button>
-                <button class="btn-primary btn-warning" onclick="carryAsDebt()">📌 မပေးသေးပါ (အကြွေးမှတ်ပြီး Cycle သစ်စမည်)</button>
+                <button class="btn-primary btn-warning" onclick="openDebtConfirmModal()">📌 မပေးသေးပါ (အကြွေးမှတ်ပြီး Cycle သစ်စမည်)</button>
             </div>
         </div>
     </div>
@@ -516,7 +527,6 @@
             <input type="number" id="modalPayInput" placeholder="0">
         </div>
 
-        <!-- Suggestion line for quick pay amount selection -->
         <label style="font-size: 0.75rem; color: var(--text-light); margin-bottom: 6px; display: block;">အလွယ်တကူ ရွေးချယ်ရန်:</label>
         <div class="quick-amounts" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 8px;">
             <button class="btn-quick" onclick="setModalPayAmount(5000)">5,000</button>
@@ -532,10 +542,23 @@
     </div>
 </div>
 
+<!-- In-App Confirmation Dynamic Modal -->
+<div class="modal-overlay" id="confirmModal">
+    <div class="modal-card">
+        <div class="modal-header" id="confirmModalTitle">အတည်ပြုရန်</div>
+        <div class="modal-sub" id="confirmModalText">ဤလုပ်ဆောင်ချက်ကို ဆက်လက် လုပ်ဆောင်မှာ သေချာပါသလား?</div>
+        <div class="modal-actions">
+            <button class="btn-primary btn-secondary" onclick="closeConfirmModal()">မလုပ်တော့ပါ</button>
+            <button class="btn-primary" id="confirmModalActionBtn" onclick="onConfirmAction()">အတည်ပြုမည်</button>
+        </div>
+    </div>
+</div>
+
 <script>
     const TARGET = 10000;
     let entries = JSON.parse(localStorage.getItem('foodEntries') || '[]');
     let cycleArchives = JSON.parse(localStorage.getItem('cycleArchives') || '[]');
+    let onConfirmCallback = null;
 
     // Set default date to today
     document.getElementById('entryDate').valueAsDate = new Date();
@@ -555,7 +578,7 @@
         const amountVal = parseInt(document.getElementById('entryAmount').value);
 
         if (!dateVal || isNaN(amountVal) || amountVal <= 0) {
-            alert("ကျေးဇူးပြု၍ ရက်စွဲနှင့် ငွေပမာဏ မှန်ကန်စွာ ထည့်သွင်းပေးပါ။");
+            showConfirmModal("အသိပေးချက်", "ကျေးဇူးပြု၍ ရက်စွဲနှင့် ငွေပမာဏ မှန်ကန်စွာ ထည့်သွင်းပေးပါ။", null, false);
             return;
         }
 
@@ -568,23 +591,57 @@
 
         saveAndRender();
         
-        // Reset inputs to default
         document.getElementById('entryDate').valueAsDate = new Date();
         document.getElementById('entryAmount').value = 2000;
     }
 
-    function deleteEntry(id) {
-        if (confirm("ဒီမှတ်တမ်းကို ဖျက်မှာ သေချာပါသလား?")) {
-            entries = entries.filter(item => item.id !== id);
-            saveAndRender();
+    // Dynamic In-App Confirmation Handler
+    function showConfirmModal(title, message, callback, isDanger = true) {
+        document.getElementById('confirmModalTitle').innerText = title;
+        document.getElementById('confirmModalText').innerText = message;
+        onConfirmCallback = callback;
+
+        const actionBtn = document.getElementById('confirmModalActionBtn');
+        if (!callback) {
+            actionBtn.style.display = 'none';
+        } else {
+            actionBtn.style.display = 'block';
+            actionBtn.className = isDanger ? 'btn-primary btn-danger-confirm' : 'btn-primary btn-warning';
         }
+
+        document.getElementById('confirmModal').classList.add('active');
+    }
+
+    function closeConfirmModal() {
+        document.getElementById('confirmModal').classList.remove('active');
+        onConfirmCallback = null;
+    }
+
+    function onConfirmAction() {
+        if (onConfirmCallback) onConfirmCallback();
+        closeConfirmModal();
+    }
+
+    function deleteEntry(id) {
+        showConfirmModal(
+            "မှတ်တမ်းဖျက်ရန်",
+            "ဒီမှတ်တမ်းကို ဖျက်မှာ သေချာပါသလား?",
+            function() {
+                entries = entries.filter(item => item.id !== id);
+                saveAndRender();
+            }
+        );
     }
 
     function deleteArchive(id) {
-        if (confirm("ဒီ စာရင်းဟောင်းကို ဖျက်ပစ်မှာ သေချာပါသလား?")) {
-            cycleArchives = cycleArchives.filter(item => item.id !== id);
-            saveAndRender();
-        }
+        showConfirmModal(
+            "စာရင်းဟောင်းဖျက်ရန်",
+            "ဒီ စာရင်းဟောင်းကို ဖျက်ပစ်မှာ သေချာပါသလား?",
+            function() {
+                cycleArchives = cycleArchives.filter(item => item.id !== id);
+                saveAndRender();
+            }
+        );
     }
 
     // Modal Control & Custom Payment Logics
@@ -614,14 +671,13 @@
         const payAmount = parseInt(document.getElementById('modalPayInput').value);
 
         if (isNaN(payAmount) || payAmount <= 0) {
-            alert("ကျေးဇူးပြု၍ မှန်ကန်သော ပေးချေငွေပမာဏ ထည့်သွင်းပေးပါ။");
+            showConfirmModal("မှားယွင်းမှု", "ကျေးဇူးပြု၍ မှန်ကန်သော ပေးချေငွေပမာဏ ထည့်သွင်းပေးပါ။", null, false);
             return;
         }
 
         const todayStr = new Date().toISOString().slice(0, 10);
         const balance = totalSum - payAmount;
 
-        // Archive current cycle
         cycleArchives.unshift({
             id: Date.now(),
             date: todayStr,
@@ -632,9 +688,8 @@
             remainingBalance: balance
         });
 
-        entries = []; // Reset current cycle
+        entries = []; 
 
-        // Carry unpaid balance if any
         if (balance > 0) {
             entries.push({
                 id: Date.now() + 1,
@@ -648,31 +703,35 @@
         saveAndRender();
     }
 
-    function carryAsDebt() {
+    function openDebtConfirmModal() {
         const totalSum = entries.reduce((sum, item) => sum + item.amount, 0);
+        showConfirmModal(
+            "📌 အကြွေးမှတ်တမ်းတင်ရန် အတည်ပြုခြင်း",
+            `စုစုပေါင်း ${totalSum.toLocaleString()} ကျပ်ကို မရှင်းသေးဘဲ အကြွေးအဖြစ် သယ်ဆောင်ပြီး Cycle အသစ် စတင်မှာ သေချာပါသလား?`,
+            function() {
+                const todayStr = new Date().toISOString().slice(0, 10);
+                
+                cycleArchives.unshift({
+                    id: Date.now(),
+                    date: todayStr,
+                    type: 'DEBT',
+                    totalAmount: totalSum,
+                    itemCount: entries.length
+                });
 
-        if (confirm(`စုစုပေါင်း ${totalSum.toLocaleString()} ကျပ်ကို မရှင်းသေးဘဲ အကြွေးအဖြစ် သယ်ဆောင်ပြီး Cycle အသစ် စတင်မှာ သေချာပါသလား?`)) {
-            const todayStr = new Date().toISOString().slice(0, 10);
-            
-            cycleArchives.unshift({
-                id: Date.now(),
-                date: todayStr,
-                type: 'DEBT',
-                totalAmount: totalSum,
-                itemCount: entries.length
-            });
+                entries = []; 
 
-            entries = []; 
+                entries.push({
+                    id: Date.now() + 1,
+                    date: todayStr,
+                    amount: totalSum,
+                    note: 'ယခင် Cycle မှ မရှင်းရသေးသော အကြွေးကျန်'
+                });
 
-            entries.push({
-                id: Date.now() + 1,
-                date: todayStr,
-                amount: totalSum,
-                note: 'ယခင် Cycle မှ မရှင်းရသေးသော အကြွေးကျန်'
-            });
-
-            saveAndRender();
-        }
+                saveAndRender();
+            },
+            false
+        );
     }
 
     function render() {
