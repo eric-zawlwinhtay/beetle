@@ -234,6 +234,16 @@
             transform: scale(0.98);
         }
 
+        .btn-secondary {
+            background: #e2e8f0;
+            color: var(--text);
+            box-shadow: none;
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e1;
+        }
+
         .btn-success {
             background: var(--success);
             box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.3);
@@ -355,9 +365,64 @@
             padding: 20px 10px;
         }
 
+        /* In-App Custom Modal Overlay */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 16px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        .modal-card {
+            background: #ffffff;
+            width: 100%;
+            max-width: 400px;
+            border-radius: 20px;
+            padding: 22px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .modal-header {
+            font-weight: 800;
+            font-size: 1.15rem;
+            color: var(--text);
+            margin-bottom: 6px;
+        }
+
+        .modal-sub {
+            font-size: 0.85rem;
+            color: var(--text-light);
+            margin-bottom: 16px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
         @keyframes popIn {
             from { transform: scale(0.92); opacity: 0; }
             to { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
     </style>
 </head>
@@ -392,7 +457,7 @@
             <div class="alert-title">⚠️ ၁၀,၀၀၀ ကျပ် ပမာဏ ပြည့်သွားပါပြီ!</div>
             <div class="alert-sub" id="alertSub">ပေးချေလိုသော ပမာဏကို ရွေးချယ်/ထည့်သွင်း၍ စာရင်းရှင်းနိုင်ပါသည်။</div>
             <div class="alert-actions">
-                <button class="btn-primary btn-success" onclick="customPay()">💵 ငွေပေးချေမည် (ပမာဏ ရွေးရန်)</button>
+                <button class="btn-primary btn-success" onclick="openPayModal()">💵 ငွေပေးချေမည် (ပမာဏ ရွေးရန်)</button>
                 <button class="btn-primary btn-warning" onclick="carryAsDebt()">📌 မပေးသေးပါ (အကြွေးမှတ်ပြီး Cycle သစ်စမည်)</button>
             </div>
         </div>
@@ -436,6 +501,33 @@
         <div class="title" style="font-size: 1.05rem; justify-content: flex-start; margin-bottom: 12px;">📁 ပြီးစီးခဲ့သော စာရင်းဟောင်းများ</div>
         <div class="history-list" id="archiveHistoryList">
             <div class="empty-state">စာရင်းဟောင်း မှတ်တမ်းများ မရှိသေးပါ။</div>
+        </div>
+    </div>
+</div>
+
+<!-- In-App Custom Payment Modal -->
+<div class="modal-overlay" id="payModal">
+    <div class="modal-card">
+        <div class="modal-header">💵 ငွေပေးချေမှု ပမာဏ ရွေးချယ်ပါ</div>
+        <div class="modal-sub" id="modalSubInfo">စုစုပေါင်း ကျသင့်ငွေ 0 ကျပ် ရှိပါသည်။</div>
+        
+        <div class="form-group">
+            <label>ပေးချေမည့် ပမာဏ (ကျပ်)</label>
+            <input type="number" id="modalPayInput" placeholder="0">
+        </div>
+
+        <!-- Suggestion line for quick pay amount selection -->
+        <label style="font-size: 0.75rem; color: var(--text-light); margin-bottom: 6px; display: block;">အလွယ်တကူ ရွေးချယ်ရန်:</label>
+        <div class="quick-amounts" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 8px;">
+            <button class="btn-quick" onclick="setModalPayAmount(5000)">5,000</button>
+            <button class="btn-quick" onclick="setModalPayAmount(10000)">10,000</button>
+            <button class="btn-quick" onclick="setModalPayAmount(15000)">15,000</button>
+            <button class="btn-quick" id="btnFullAmount" onclick="setModalPayFull()">အပြည့်</button>
+        </div>
+
+        <div class="modal-actions">
+            <button class="btn-primary btn-secondary" onclick="closePayModal()">မလုပ်တော့ပါ</button>
+            <button class="btn-primary btn-success" onclick="confirmPayment()">အတည်ပြုမည်</button>
         </div>
     </div>
 </div>
@@ -495,23 +587,39 @@
         }
     }
 
-    function customPay() {
+    // Modal Control & Custom Payment Logics
+    function openPayModal() {
         const totalSum = entries.reduce((sum, item) => sum + item.amount, 0);
-        
-        // Prompt user for payment amount, default to full total amount
-        const userInput = prompt(`စုစုပေါင်း ကျသင့်ငွေ ${totalSum.toLocaleString()} ကျပ် ရှိပါသည်။\nပေးချေမည့် ငွေပမာဏကို ထည့်ပါ:`, totalSum);
+        document.getElementById('modalSubInfo').innerText = `စုစုပေါင်း ကျသင့်ငွေ ${totalSum.toLocaleString()} ကျပ် ရှိပါသည်။`;
+        document.getElementById('modalPayInput').value = totalSum;
+        document.getElementById('btnFullAmount').innerText = totalSum.toLocaleString();
+        document.getElementById('payModal').classList.add('active');
+    }
 
-        if (userInput === null) return; // Cancelled
+    function closePayModal() {
+        document.getElementById('payModal').classList.remove('active');
+    }
 
-        const payAmount = parseInt(userInput);
+    function setModalPayAmount(amt) {
+        document.getElementById('modalPayInput').value = amt;
+    }
+
+    function setModalPayFull() {
+        const totalSum = entries.reduce((sum, item) => sum + item.amount, 0);
+        document.getElementById('modalPayInput').value = totalSum;
+    }
+
+    function confirmPayment() {
+        const totalSum = entries.reduce((sum, item) => sum + item.amount, 0);
+        const payAmount = parseInt(document.getElementById('modalPayInput').value);
 
         if (isNaN(payAmount) || payAmount <= 0) {
-            alert("ကျေးဇူးပြု၍ မှန်ကန်သော ပေးချေငွေပမာဏ ထည့်ပါ။");
+            alert("ကျေးဇူးပြု၍ မှန်ကန်သော ပေးချေငွေပမာဏ ထည့်သွင်းပေးပါ။");
             return;
         }
 
         const todayStr = new Date().toISOString().slice(0, 10);
-        const balance = totalSum - payAmount; // Positive balance = Debt, Negative = Excess/Overpaid
+        const balance = totalSum - payAmount;
 
         // Archive current cycle
         cycleArchives.unshift({
@@ -526,20 +634,17 @@
 
         entries = []; // Reset current cycle
 
-        // If balance remains or overpaid, carry forward to new cycle
+        // Carry unpaid balance if any
         if (balance > 0) {
-            // Less than total sum paid -> Carry debt
             entries.push({
                 id: Date.now() + 1,
                 date: todayStr,
                 amount: balance,
                 note: 'ယခင် cycle မှ မရှင်းရသေးသော အကြွေးကျန်'
             });
-        } else if (balance < 0) {
-            // Overpaid -> Carry excess balance as negative/credit
-            alert(`ပေးချေငွေ ပိုနေသော ${Math.abs(balance).toLocaleString()} ကျပ်ကို နောက် cycle အတွက် ပိုငွေအဖြစ် မသယ်ပါဘဲ 0 မှ စတင်ပါမည်။ (သို့မဟုတ် အကြွေးမရှိတော့ပါ)`);
         }
 
+        closePayModal();
         saveAndRender();
     }
 
@@ -549,7 +654,6 @@
         if (confirm(`စုစုပေါင်း ${totalSum.toLocaleString()} ကျပ်ကို မရှင်းသေးဘဲ အကြွေးအဖြစ် သယ်ဆောင်ပြီး Cycle အသစ် စတင်မှာ သေချာပါသလား?`)) {
             const todayStr = new Date().toISOString().slice(0, 10);
             
-            // Archive as DEBT
             cycleArchives.unshift({
                 id: Date.now(),
                 date: todayStr,
@@ -558,9 +662,8 @@
                 itemCount: entries.length
             });
 
-            entries = []; // Reset active list
+            entries = []; 
 
-            // Carry full accumulated balance to the new cycle as unpaid debt
             entries.push({
                 id: Date.now() + 1,
                 date: todayStr,
@@ -582,11 +685,9 @@
         const alertBanner = document.getElementById('alertBanner');
         const alertSub = document.getElementById('alertSub');
 
-        // Calculate Total
         const totalSum = entries.reduce((sum, item) => sum + item.amount, 0);
         totalDisplay.innerText = totalSum.toLocaleString() + " ကျပ်";
 
-        // Progress Percent
         const percent = Math.min(100, Math.round((totalSum / TARGET) * 100));
         progressBar.style.width = percent + "%";
         percentDisplay.innerText = percent + "%";
@@ -600,10 +701,8 @@
             alertBanner.classList.remove('active');
         }
 
-        // Count entries
         eatenDaysCount.innerText = `မှတ်တမ်း: ${entries.length} ခု`;
 
-        // Render Active History Items
         if (entries.length === 0) {
             historyList.innerHTML = '<div class="empty-state">လက်ရှိ Cycle တွင် မှတ်တမ်းများ မရှိသေးပါ။</div>';
         } else {
@@ -621,7 +720,6 @@
             `).join('');
         }
 
-        // Render Cycle Archives
         if (cycleArchives.length === 0) {
             archiveHistoryList.innerHTML = '<div class="empty-state">စာရင်းဟောင်း မှတ်တမ်းများ မရှိသေးပါ။</div>';
         } else {
@@ -661,7 +759,6 @@
         }
     }
 
-    // Initial Render
     render();
 </script>
 
